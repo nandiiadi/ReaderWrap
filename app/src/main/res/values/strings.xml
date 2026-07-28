@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">ReaderWrap</string>
+    <string name="toggle_reader_mode">Toggle reader mode</string>
+</resources>
