@@ -1,14 +1,9 @@
 package com.example.readerwrap
 
 import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
-import android.view.Gravity
-import android.view.ViewGroup
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Button
-import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -50,21 +45,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         fab.setImageResource(android.R.drawable.ic_menu_revert)
-        fab.setOnClickListener { handleBackOrExit() }
-
-        // Temporary test button — confirms finish() returns to Google News.
-        val testFinish = Button(this).apply {
-            text = "EXIT"
-            textSize = 11f
-            setTextColor(Color.WHITE)
-            setBackgroundColor(Color.argb(180, 0, 0, 0))
-            setOnClickListener { finish() }
-        }
-        val lp = FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { gravity = Gravity.BOTTOM or Gravity.START; setMargins(32, 0, 0, 180) }
-        (window.decorView.findViewById<ViewGroup>(android.R.id.content)).addView(testFinish, lp)
+        fab.setOnClickListener { finish() }
 
         handleIntent(intent)
     }
