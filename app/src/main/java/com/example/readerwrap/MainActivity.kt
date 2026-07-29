@@ -15,9 +15,9 @@ import java.io.InputStreamReader
  * Minimal WebView wrapper around Mozilla's Readability.js (the same library
  * Firefox itself uses for Reader View). See assets/READABILITY_LICENSE.md.
  *
- * Flow: load the page normally -> tap the FAB -> Readability.js parses the
- * current DOM -> the page body is replaced with the cleaned article.
- * Tap the FAB again (or press back) to return to the original page.
+ * Flow: load the page normally -> Reader mode auto-applies on page load.
+ * FAB or Back button -> exits Reader mode (restores original DOM) or
+ * navigates back in WebView history.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -26,7 +26,6 @@ class MainActivity : AppCompatActivity() {
 
     private var originalUrl: String? = null
     private var isReaderMode = false
-    private var userExitedReader = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,22 +40,12 @@ class MainActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 isReaderMode = false
-                if (!userExitedReader) {
-                    applyReaderMode()
-                }
-                userExitedReader = false
-            }
-        }
-
-        fab.setOnClickListener {
-            if (isReaderMode) {
-                userExitedReader = true
-                originalUrl?.let { webView.loadUrl(it) }
-            } else {
-                userExitedReader = false
                 applyReaderMode()
             }
         }
+
+        fab.setImageResource(android.R.drawable.ic_menu_revert)
+        fab.setOnClickListener { handleBackOrExit() }
 
         handleIntent(intent)
     }
@@ -76,7 +65,6 @@ class MainActivity : AppCompatActivity() {
         if (url != null) {
             originalUrl = url
             isReaderMode = false
-            userExitedReader = false
             webView.loadUrl(url)
         }
     }
@@ -91,6 +79,7 @@ class MainActivity : AppCompatActivity() {
 
         // Single evaluateJavascript call: inject Readability, parse, apply CSS, and
         // swap body in one JS execution to avoid intermediate renders (fix #3).
+        // Also saves original body for Back-button DOM restore (fix #2).
         val script = """
             (function() {
               $readabilitySrc
@@ -100,6 +89,8 @@ class MainActivity : AppCompatActivity() {
                 var article = new Readability(clone).parse();
                 if (!article) { return 'NO_ARTICLE'; }
 
+                if (window.__readerOriginalBody == null)
+                    window.__readerOriginalBody = document.body.innerHTML;
                 var style = document.getElementById('reader-style');
                 if (!style) {
                   style = document.createElement('style');
@@ -125,7 +116,6 @@ class MainActivity : AppCompatActivity() {
         webView.evaluateJavascript(script) { result ->
             if (result != null && result.contains("OK")) {
                 isReaderMode = true
-                fab.setImageResource(android.R.drawable.ic_menu_revert)
             } else {
                 Toast.makeText(
                     this,
@@ -144,24 +134,26 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun handleBackOrExit() {
+        if (isReaderMode) {
+            webView.evaluateJavascript(
+                "(function(){" +
+                "  if(window.__readerOriginalBody)" +
+                "    {document.body.innerHTML=window.__readerOriginalBody;" +
+                "     var s=document.getElementById('reader-style');" +
+                "     if(s)s.remove();}" +
+                "})();"
+            ) {
+                isReaderMode = false
+            }
+            return
+        }
+        if (webView.canGoBack()) webView.goBack()
+        else finish()
+    }
+
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
-        when {
-            isReaderMode && webView.canGoBack() -> {
-                // Fix #2: exit reader mode via history navigation, not URL reload.
-                // No extra history entry is created.
-                isReaderMode = false
-                fab.setImageResource(android.R.drawable.ic_menu_view)
-                webView.goBack()
-            }
-            isReaderMode && originalUrl != null -> {
-                // No history to go back to (opened via intent) — reload original.
-                isReaderMode = false
-                fab.setImageResource(android.R.drawable.ic_menu_view)
-                webView.loadUrl(originalUrl!!)
-            }
-            webView.canGoBack() -> webView.goBack()
-            else -> super.onBackPressed()
-        }
+        handleBackOrExit()
     }
 }
