@@ -40,5 +40,16 @@
             </intent-filter>
 
         </activity>
+
+        <!-- Accepts the Custom Tabs bind that Google News now targets directly
+             by package name (via the patched getBrowserPackage()). Nothing else
+             on-device has this package hardcoded, so nothing else will bind here. -->
+        <service
+            android:name=".ReaderCustomTabsService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.support.customtabs.action.CustomTabsService" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>
