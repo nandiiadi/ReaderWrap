@@ -22,7 +22,7 @@ class ReaderCustomTabsService : CustomTabsService() {
     }
 
     override fun mayLaunchUrl(
-        sessionToken: CustomTabsSessionToken?,
+        sessionToken: CustomTabsSessionToken,
         url: Uri?,
         extras: Bundle?,
         otherLikelyBundles: MutableList<Bundle>?
@@ -49,6 +49,13 @@ class ReaderCustomTabsService : CustomTabsService() {
         origin: Uri,
         extras: Bundle?
     ): Boolean = true
+
+    override fun receiveFile(
+        sessionToken: CustomTabsSessionToken,
+        uri: Uri,
+        purpose: Int,
+        extras: Bundle?
+    ): Boolean = false
 
     override fun cleanUpSession(sessionToken: CustomTabsSessionToken): Boolean {
         if (lastSession == sessionToken) lastSession = null
